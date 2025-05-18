@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+
+{% block title %}SDXL WebUI - Settings{% endblock %}
+
+{% block header_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <form id="settings-form">
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Model Settings</h3>
+                </div>
+                <div class="form-group">
+                    <label for="model-select">Model</label>
+                    <select id="model-select" name="selected_model">
+                        <option value="PRIMAGEN/Nova-Furry-XL-V7.B">Nova-Furry-XL-V7.B</option>
+                        <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL Base 1.0</option>
+                        <option value="stablediffusionapi/cyberrealistic-v4.0">Cyberrealistic v4.0</option>
+                        <option value="SG161222/RealVisXL_V3.0">RealVisXL v3.0</option>
+                        <option value="Lykon/dreamshaper-xl-1-0">Dreamshaper XL 1.0</option>
+                        <option value="RunDiffusion/Juggernaut-XL-v7">Juggernaut XL v7</option>
+                        <option value="zenless-lab/sdxl-anything-xl">Anything XL</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="vae-select">VAE</label>
+                    <select id="vae-select" name="selected_vae">
+                        <option value="None">Default VAE</option>
+                        <option value="stabilityai/sd-vae-ft-mse">stabilityai/sd-vae-ft-mse</option>
+                        <option value="stabilityai/sdxl-vae">stabilityai/sdxl-vae</option>
+                        <option value="Linaqruf/anime-vae">Linaqruf/anime-vae</option>
+                        <option value="stablediffusionapi/anything-v5-vae">Anything v5 VAE</option>
+                        <option value="hakurei/waifu-diffusion-vae">Waifu Diffusion VAE</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="scheduler-select">Scheduler</label>
+                    <select id="scheduler-select" name="current_scheduler">
+                        <option value="Euler">Euler</option>
+                        <option value="Euler a">Euler a</option>
+                        <option value="DPM++ 2M">DPM++ 2M</option>
+                        <option value="DDIM">DDIM</option>
+                        <option value="Heun">Heun</option>
+                        <option value="KDPM2">KDPM2</option>
+                        <option value="LMS">LMS</option>
+                        <option value="PNDM">PNDM</option>
+                        <option value="UniPC">UniPC</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="huggingface-token">Hugging Face Token</label>
+                    <input type="password" id="huggingface-token" name="huggingface_token" placeholder="Enter HF_TOKEN for protected models">
+                    <small>Required for some models and ControlNet functionality</small>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">LoRA Settings</h3>
+                </div>
+                <div class="form-group">
+                    <label for="lora-select">LoRA</label>
+                    <select id="lora-select" name="selected_lora">
+                        <option value="None">No LoRA</option>
+                        <option value="goofyai/SDXL_Anime_Style">SDXL Anime Style</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="lora-weight">LoRA Weight</label>
+                    <div class="range-with-value">
+                        <input type="range" id="lora-weight" name="lora_weight" min="0" max="1" step="0.05" value="0.8">
+                        <span id="lora-weight-value">0.8</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="civitai-api-key">CivitAI API Key</label>
+                    <input type="password" id="civitai-api-key" name="civitai_api_key" placeholder="Enter CivitAI API Key">
+                </div>
+                
+                <div class="form-group">
+                    <label for="lora-search">Search CivitAI LoRAs</label>
+                    <div class="search-with-button">
+                        <input type="text" id="lora-search" placeholder="Search for LoRAs...">
+                        <button type="button" id="search-lora-btn" class="btn">Search</button>
+                    </div>
+                </div>
+                
+                <div class="search-results-container" id="lora-search-results" style="display: none;">
+                    <div class="card-subheader">
+                        <h4>Search Results</h4>
+                    </div>
+                    <div class="search-results-list" id="lora-results-list">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Watermark Settings</h3>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="watermark-enabled" name="watermark_enabled">
+                        <label for="watermark-enabled">Enable Watermark</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="watermark-text">Watermark Text</label>
+                    <input type="text" id="watermark-text" name="watermark_text" placeholder="Enter watermark text">
+                </div>
+                
+                <div class="form-group">
+                    <label for="watermark-opacity">Watermark Opacity</label>
+                    <div class="range-with-value">
+                        <input type="range" id="watermark-opacity" name="watermark_opacity" min="0.1" max="1" step="0.05" value="0.3">
+                        <span id="watermark-opacity-value">0.3</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Upscaler Settings</h3>
+                </div>
+                <div class="form-group">
+                    <label for="upscaler-select">Upscaler Model</label>
+                    <select id="upscaler-select" name="upscaler_model">
+                        <option value="None">None</option>
+                        <option value="RealESRGAN_x4plus_anime">RealESRGAN x4plus Anime</option>
+                        <option value="RealESRGAN_x4plus">RealESRGAN x4plus</option>
+                        <option value="AnimeJaNai_v2">AnimeJaNai v2</option>
+                        <option value="UltraSharp">UltraSharp</option>
+                        <option value="AnimeUnreal">AnimeUnreal</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" id="load-upscaler-btn" class="btn">Load Upscaler Model</button>
+                </div>
+                
+                <div class="form-group">
+                    <div id="upscaler-status" class="status-message">No upscaler model loaded</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions centered">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .settings-container {
+        width: 100%;
+    }
+    
+    .range-with-value {
+        display: flex;
+        align-items: center;
+    }
+    
+    .range-with-value input {
+        flex: 1;
+        margin-right: 10px;
+    }
+    
+    .range-with-value span {
+        width: 50px;
+        text-align: right;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+    
+    .checkbox-group input {
+        width: auto;
+        margin-right: 10px;
+    }
+    
+    .checkbox-group label {
+        margin-bottom: 0;
+    }
+    
+    .form-actions.centered {
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    .search-with-button {
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-with-button input {
+        flex: 1;
+        margin-right: 10px;
+    }
+    
+    .card-subheader {
+        margin-top: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .card-subheader h4 {
+        font-size: 1rem;
+        font-weight: 500;
+        margin: 0;
+    }
+    
+    .search-results-list {
+        margin-top: 10px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .search-result-item {
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    
+    .search-result-item:hover {
+        background-color: var(--hover-color);
+    }
+    
+    .search-result-item .title {
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+    
+    .search-result-item .info {
+        font-size: 0.8rem;
+        color: #8b949e;
+    }
+    
+    .status-message {
+        padding: 10px;
+        border-radius: 4px;
+        background-color: var(--hover-color);
+        font-size: 0.9rem;
+    }
+</style>
+
+{% block additional_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup range inputs to update their displayed values
+        const rangeInputs = document.querySelectorAll('input[type="range"]');
+        
+        rangeInputs.forEach(input => {
+            const valueDisplay = document.getElementById(`${input.id}-value`);
+            
+            if (valueDisplay) {
+                // Initial value
+                valueDisplay.textContent = input.value;
+                
+                // Update on change
+                input.addEventListener('input', function() {
+                    valueDisplay.textContent = this.value;
+                });
+            }
+        });
+        
+        // LoRA search handler
+        const searchLoraBtn = document.getElementById('search-lora-btn');
+        const loraSearchInput = document.getElementById('lora-search');
+        const loraResultsContainer = document.getElementById('lora-search-results');
+        const loraResultsList = document.getElementById('lora-results-list');
+        
+        if (searchLoraBtn && loraSearchInput) {
+            searchLoraBtn.addEventListener('click', function() {
+                const query = loraSearchInput.value.trim();
+                
+                if (!query) {
+                    showNotification('Please enter a search term', 'warning');
+                    return;
+                }
+                
+                // Show loading
+                loraResultsList.innerHTML = '<div class="search-results-loading">Searching...</div>';
+                loraResultsContainer.style.display = 'block';
+                
+                // Call the API
+                fetch(`/api/search_loras?query=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.results && data.results.length > 0) {
+                            // Show results
+                            loraResultsList.innerHTML = data.results.map(lora => `
+                                <div class="search-result-item" data-id="${lora.id}">
+                                    <div class="title">${lora.name}</div>
+                                    <div class="info">ID: ${lora.id}</div>
+                                    <button class="btn btn-sm download-lora-btn" data-id="${lora.id}">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                </div>
+                            `).join('');
+                            
+                            // Add download handlers
+                            document.querySelectorAll('.download-lora-btn').forEach(btn => {
+                                btn.addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    const loraId = this.dataset.id;
+                                    downloadLora(loraId);
+                                });
+                            });
+                        } else {
+                            // No results
+                            loraResultsList.innerHTML = '<div class="no-results">No LoRAs found. Try a different search term.</div>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching LoRAs:', error);
+                        loraResultsList.innerHTML = '<div class="error">Error searching LoRAs. Please try again.</div>';
+                    });
+            });
+        }
+        
+        function downloadLora(loraId) {
+            showNotification('Downloading LoRA...', 'info');
+            
+            fetch(`/api/download_lora?id=${encodeURIComponent(loraId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('LoRA downloaded successfully', 'success');
+                        
+                        // Refresh LoRA dropdown
+                        const loraSelect = document.getElementById('lora-select');
+                        if (loraSelect && data.lora) {
+                            const option = document.createElement('option');
+                            option.value = data.lora.id;
+                            option.textContent = data.lora.name;
+                            loraSelect.appendChild(option);
+                            loraSelect.value = data.lora.id;
+                        }
+                    } else {
+                        showNotification(data.error || 'Failed to download LoRA', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error downloading LoRA:', error);
+                    showNotification('Error downloading LoRA', 'error');
+                });
+        }
+        
+        // Load upscaler handler
+        const loadUpscalerBtn = document.getElementById('load-upscaler-btn');
+        if (loadUpscalerBtn) {
+            loadUpscalerBtn.addEventListener('click', function() {
+                const upscalerSelect = document.getElementById('upscaler-select');
+                const upscalerStatus = document.getElementById('upscaler-status');
+                
+                if (!upscalerSelect || !upscalerStatus) return;
+                
+                const selectedUpscaler = upscalerSelect.value;
+                upscalerStatus.textContent = 'Loading upscaler...';
+                
+                fetch('/api/load_upscaler', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ model: selectedUpscaler })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        upscalerStatus.textContent = data.message;
+                        showNotification('Upscaler loaded successfully', 'success');
+                    } else {
+                        upscalerStatus.textContent = data.error || 'Failed to load upscaler';
+                        showNotification(data.error || 'Failed to load upscaler', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading upscaler:', error);
+                    upscalerStatus.textContent = 'Error loading upscaler';
+                    showNotification('Error loading upscaler', 'error');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

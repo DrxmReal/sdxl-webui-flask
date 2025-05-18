@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}SDXL WebUI - ControlNet{% endblock %}
+
+{% block header_title %}ControlNet{% endblock %}
+
+{% block content %}
+<div class="controlnet-container">
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Control Image</h3>
+            </div>
+            <form id="controlnet-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="control-image">Upload Control Image</label>
+                    <input type="file" id="control-image" name="control_image" accept="image/*">
+                    <div class="image-preview-container">
+                        <img id="control-image-preview" class="img-preview" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="controlnet-type">ControlNet Type</label>
+                    <select id="controlnet-type" name="controlnet_type">
+                        <option value="canny">Canny Edge</option>
+                        <option value="openpose">Openpose</option>
+                        <option value="depth">Depth Map</option>
+                        <option value="mlsd">MLSD Lines</option>
+                        <option value="scribble">Scribble</option>
+                        <option value="seg">Segmentation</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="controlnet-conditioning-scale">Conditioning Scale</label>
+                    <div class="range-with-value">
+                        <input type="range" id="controlnet-conditioning-scale" name="conditioning_scale" min="0.1" max="1.5" step="0.05" value="0.8">
+                        <span id="controlnet-conditioning-scale-value">0.8</span>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" id="process-btn" class="btn">
+                        <i class="fas fa-cog"></i> Process Control Image
+                    </button>
+                </div>
+                
+                <input type="hidden" id="processed-image-id" name="processed_image_id">
+            </form>
+            
+            <div class="processed-image-container" style="margin-top: 20px;">
+                <div class="card-subheader">
+                    <h4>Processed Image</h4>
+                </div>
+                <div class="image-preview-container">
+                    <img id="processed-image-preview" class="img-preview" style="display: none;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Generate Images</h3>
+            </div>
+            <form id="controlnet-generate-form">
+                <div class="form-group">
+                    <label for="prompt">Prompt</label>
+                    <textarea id="prompt" name="prompt" rows="4" placeholder="Describe what you want to see in the image..."></textarea>
+                    <small>Tokens: <span id="prompt-tokens">0/77</span></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="negative-prompt">Negative Prompt</label>
+                    <textarea id="negative-prompt" name="negative_prompt" rows="3" placeholder="Describe what you don't want to see..."></textarea>
+                    <small>Tokens: <span id="negative-prompt-tokens">0/77</span></small>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="width">Width</label>
+                        <div class="range-with-value">
+                            <input type="range" id="width" name="width" min="512" max="2048" step="64" value="768">
+                            <span id="width-value">768</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="height">Height</label>
+                        <div class="range-with-value">
+                            <input type="range" id="height" name="height" min="512" max="2048" step="64" value="1024">
+                            <span id="height-value">1024</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="steps">Steps</label>
+                        <div class="range-with-value">
+                            <input type="range" id="steps" name="steps" min="10" max="100" step="1" value="30">
+                            <span id="steps-value">30</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="guidance">Guidance Scale</label>
+                        <div class="range-with-value">
+                            <input type="range" id="guidance" name="guidance" min="1" max="20" step="0.5" value="7.5">
+                            <span id="guidance-value">7.5</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="seed">Seed (0 = random)</label>
+                        <input type="number" id="seed" name="seed" min="0" step="1" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="num-images">Number of Images</label>
+                        <input type="number" id="num-images" name="num_images" min="1" max="4" step="1" value="1">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="generate-btn" disabled>
+                        <i class="fas fa-magic"></i> Generate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Results</h3>
+        </div>
+        <div id="generation-results" class="generation-results">
+            <div class="placeholder-message">
+                <p>Generated images will appear here</p>
+            </div>
+        </div>
+        
+        <div class="card-header">
+            <h3 class="card-title">Logs</h3>
+        </div>
+        <div id="generation-logs" class="logs-container">
+            <!-- Logs will be displayed here -->
+        </div>
+    </div>
+</div>
+
+<style>
+    .controlnet-container {
+        width: 100%;
+    }
+    
+    .range-with-value {
+        display: flex;
+        align-items: center;
+    }
+    
+    .range-with-value input {
+        flex: 1;
+        margin-right: 10px;
+    }
+    
+    .range-with-value span {
+        width: 50px;
+        text-align: right;
+    }
+    
+    .form-actions {
+        margin-top: 20px;
+        text-align: right;
+    }
+    
+    small {
+        color: #8b949e;
+        font-size: 0.8rem;
+    }
+    
+    .generation-results {
+        min-height: 300px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .placeholder-message {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #8b949e;
+        font-style: italic;
+    }
+    
+    .image-preview-container {
+        margin-top: 10px;
+        text-align: center;
+    }
+    
+    .img-preview {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .card-subheader {
+        margin-top: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .card-subheader h4 {
+        font-size: 1rem;
+        font-weight: 500;
+        margin: 0;
+    }
+</style>
+
+{% block additional_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup range inputs to update their displayed values
+        const rangeInputs = document.querySelectorAll('input[type="range"]');
+        
+        rangeInputs.forEach(input => {
+            const valueDisplay = document.getElementById(`${input.id}-value`);
+            
+            if (valueDisplay) {
+                // Initial value
+                valueDisplay.textContent = input.value;
+                
+                // Update on change
+                input.addEventListener('input', function() {
+                    valueDisplay.textContent = this.value;
+                });
+            }
+        });
+        
+        // Image upload preview
+        const imageInput = document.getElementById('control-image');
+        const imagePreview = document.getElementById('control-image-preview');
+        
+        if (imageInput && imagePreview) {
+            imageInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                    };
+                    
+                    reader.readAsDataURL(this.files[0]);
+                    
+                    // Hide processed preview when new image is selected
+                    const processedPreview = document.getElementById('processed-image-preview');
+                    if (processedPreview) {
+                        processedPreview.style.display = 'none';
+                    }
+                    
+                    // Reset the processed image ID
+                    const processedImageId = document.getElementById('processed-image-id');
+                    if (processedImageId) {
+                        processedImageId.value = '';
+                    }
+                    
+                    // Disable generate button when changing control image
+                    const generateBtn = document.getElementById('generate-btn');
+                    if (generateBtn) {
+                        generateBtn.disabled = true;
+                    }
+                }
+            });
+        }
+        
+        // Process button handler
+        const processBtn = document.getElementById('process-btn');
+        if (processBtn) {
+            processBtn.addEventListener('click', function() {
+                const imageInput = document.getElementById('control-image');
+                
+                if (!imageInput || !imageInput.files || !imageInput.files[0]) {
+                    showNotification('Please select an image first', 'warning');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('control_image', imageInput.files[0]);
+                
+                const controlnetType = document.getElementById('controlnet-type');
+                if (controlnetType) {
+                    formData.append('type', controlnetType.value);
+                }
+                
+                const conditioningScale = document.getElementById('controlnet-conditioning-scale');
+                if (conditioningScale) {
+                    formData.append('conditioning_scale', conditioningScale.value);
+                }
+                
+                showLoading('Processing control image...');
+                
+                fetch('/api/process_controlnet', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    
+                    if (data.success && data.processed_image) {
+                        const processedPreview = document.getElementById('processed-image-preview');
+                        const processedImageId = document.getElementById('processed-image-id');
+                        const generateBtn = document.getElementById('generate-btn');
+                        
+                        processedPreview.src = `data:image/png;base64,${data.processed_image}`;
+                        processedPreview.style.display = 'block';
+                        
+                        processedImageId.value = data.image_id;
+                        
+                        // Enable generate button
+                        generateBtn.disabled = false;
+                        
+                        showNotification('Control image processed successfully', 'success');
+                    } else {
+                        showNotification(data.error || 'Failed to process image', 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error processing control image:', error);
+                    showNotification('Error processing control image', 'error');
+                });
+            });
+        }
+        
+        // Generation form handler
+        const generateForm = document.getElementById('controlnet-generate-form');
+        if (generateForm) {
+            generateForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const processedImageId = document.getElementById('processed-image-id').value;
+                
+                if (!processedImageId) {
+                    showNotification('Please process a control image first', 'warning');
+                    return;
+                }
+                
+                const formData = new FormData(this);
+                formData.append('processed_image_id', processedImageId);
+                formData.append('controlnet_type', document.getElementById('controlnet-type').value);
+                formData.append('conditioning_scale', document.getElementById('controlnet-conditioning-scale').value);
+                
+                showLoading('Generating image...');
+                
+                fetch('/api/generate_controlnet', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Start polling for job status
+                        pollJobStatus(data.job_id);
+                    } else {
+                        hideLoading();
+                        showNotification('Failed to start generation: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error generating image:', error);
+                    showNotification('Error generating image', 'error');
+                });
+            });
+        }
+        
+        function pollJobStatus(jobId) {
+            fetch(`/api/job/${jobId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'running') {
+                        // Update progress if available
+                        if (data.progress) {
+                            updateLoadingProgress(data.progress);
+                        }
+                        
+                        // Check again after a short delay
+                        setTimeout(() => pollJobStatus(jobId), 1000);
+                    } else if (data.status === 'completed') {
+                        hideLoading();
+                        
+                        if (data.images && data.images.length > 0) {
+                            displayGeneratedImages(data.images);
+                        }
+                        
+                        // Display logs if available
+                        if (data.logs) {
+                            displayLogs(data.logs);
+                        }
+                        
+                        showNotification('Generation completed successfully!', 'success');
+                    } else if (data.status === 'failed') {
+                        hideLoading();
+                        showNotification('Generation failed: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error polling job status:', error);
+                    showNotification('Error checking generation status', 'error');
+                });
+        }
+        
+        function displayGeneratedImages(images) {
+            const gallery = document.getElementById('generation-results');
+            if (!gallery) return;
+            
+            // Clear existing contents
+            gallery.innerHTML = '';
+            
+            // Add each image to the gallery
+            images.forEach(img => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'gallery-item';
+                
+                const imgElement = document.createElement('img');
+                imgElement.src = `data:image/png;base64,${img.base64}`;
+                imgElement.alt = img.filename;
+                imgElement.dataset.path = img.path;
+                
+                imgElement.addEventListener('click', function() {
+                    openImageModal(this.src, img.filename, img.path);
+                });
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'gallery-item-overlay';
+                overlay.textContent = img.filename;
+                
+                imgContainer.appendChild(imgElement);
+                imgContainer.appendChild(overlay);
+                gallery.appendChild(imgContainer);
+            });
+        }
+        
+        function displayLogs(logs) {
+            const logsContainer = document.getElementById('generation-logs');
+            if (!logsContainer) return;
+            
+            if (Array.isArray(logs)) {
+                logsContainer.innerHTML = logs.map(log => 
+                    `<div class="log-entry">${log}</div>`
+                ).join('');
+            } else {
+                logsContainer.innerHTML = `<div class="log-entry">${logs}</div>`;
+            }
+            
+            // Scroll to bottom
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

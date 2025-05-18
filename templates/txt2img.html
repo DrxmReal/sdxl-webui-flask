@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}SDXL WebUI - Text to Image{% endblock %}
+
+{% block header_title %}Text to Image{% endblock %}
+
+{% block content %}
+<div class="txt2img-container">
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Generate Images</h3>
+            </div>
+            <form id="txt2img-form">
+                <div class="form-group">
+                    <label for="prompt">Prompt</label>
+                    <textarea id="prompt" name="prompt" rows="4" placeholder="Describe what you want to see in the image..."></textarea>
+                    <small>Tokens: <span id="prompt-tokens">0/77</span></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="negative-prompt">Negative Prompt</label>
+                    <textarea id="negative-prompt" name="negative_prompt" rows="3" placeholder="Describe what you don't want to see..."></textarea>
+                    <small>Tokens: <span id="negative-prompt-tokens">0/77</span></small>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="width">Width</label>
+                        <div class="range-with-value">
+                            <input type="range" id="width" name="width" min="512" max="2048" step="64" value="768">
+                            <span id="width-value">768</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="height">Height</label>
+                        <div class="range-with-value">
+                            <input type="range" id="height" name="height" min="512" max="2048" step="64" value="1024">
+                            <span id="height-value">1024</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="steps">Steps</label>
+                        <div class="range-with-value">
+                            <input type="range" id="steps" name="steps" min="10" max="100" step="1" value="30">
+                            <span id="steps-value">30</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="guidance">Guidance Scale</label>
+                        <div class="range-with-value">
+                            <input type="range" id="guidance" name="guidance" min="1" max="20" step="0.5" value="7.5">
+                            <span id="guidance-value">7.5</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="seed">Seed (0 = random)</label>
+                        <input type="number" id="seed" name="seed" min="0" step="1" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="num-images">Number of Images</label>
+                        <input type="number" id="num-images" name="num_images" min="1" max="10" step="1" value="1">
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="do-upscale" name="do_upscale" value="true">
+                            <label for="do-upscale">Apply Upscaler</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="apply-watermark" name="apply_watermark" value="true">
+                            <label for="apply-watermark">Apply Watermark</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="webhook-url">Discord Webhook URL (Optional)</label>
+                    <input type="text" id="webhook-url" name="webhook_url" placeholder="https://discord.com/api/webhooks/...">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Generate
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Results</h3>
+            </div>
+            <div id="generation-results" class="generation-results">
+                <div class="placeholder-message">
+                    <p>Generated images will appear here</p>
+                </div>
+            </div>
+            
+            <div class="card-header">
+                <h3 class="card-title">Logs</h3>
+            </div>
+            <div id="generation-logs" class="logs-container">
+                <!-- Logs will be displayed here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .range-with-value {
+        display: flex;
+        align-items: center;
+    }
+    
+    .range-with-value input {
+        flex: 1;
+        margin-right: 10px;
+    }
+    
+    .range-with-value span {
+        width: 50px;
+        text-align: right;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+    
+    .checkbox-group input {
+        width: auto;
+        margin-right: 10px;
+    }
+    
+    .checkbox-group label {
+        margin-bottom: 0;
+    }
+    
+    .form-actions {
+        margin-top: 20px;
+        text-align: right;
+    }
+    
+    small {
+        color: #8b949e;
+        font-size: 0.8rem;
+    }
+    
+    .generation-results {
+        min-height: 300px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .placeholder-message {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #8b949e;
+        font-style: italic;
+    }
+</style>
+
+{% block additional_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup range inputs to update their displayed values
+        const rangeInputs = document.querySelectorAll('input[type="range"]');
+        
+        rangeInputs.forEach(input => {
+            const valueDisplay = document.getElementById(`${input.id}-value`);
+            
+            if (valueDisplay) {
+                // Initial value
+                valueDisplay.textContent = input.value;
+                
+                // Update on change
+                input.addEventListener('input', function() {
+                    valueDisplay.textContent = this.value;
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

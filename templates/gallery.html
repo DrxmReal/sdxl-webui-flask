@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}SDXL WebUI - Gallery{% endblock %}
+
+{% block header_title %}Image Gallery{% endblock %}
+
+{% block content %}
+<div class="gallery-page">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Browse Generated Images</h3>
+            <div class="search-box">
+                <form id="gallery-search-form" action="{{ url_for('gallery') }}" method="get">
+                    <input type="text" name="search" id="gallery-search" placeholder="Search images..." value="{{ request.args.get('search', '') }}">
+                    <button type="submit" class="btn btn-sm">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="gallery-filters">
+            <div class="filter-group">
+                <label for="sort-by">Sort by:</label>
+                <select id="sort-by" name="sort">
+                    <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>Newest first</option>
+                    <option value="oldest" {% if request.args.get('sort') == 'oldest' %}selected{% endif %}>Oldest first</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="gallery-stats">
+            {% if images %}
+                <p>{{ images|length }} image(s) found</p>
+            {% else %}
+                <p>No images found</p>
+            {% endif %}
+        </div>
+        
+        <div class="gallery-container">
+            {% if images %}
+                {% for image in images %}
+                    <div class="gallery-item" data-seed="{{ image.seed }}" data-filename="{{ image.filename }}">
+                        <img src="{{ url_for('serve_image', filename=image.path) }}" alt="{{ image.filename }}" loading="lazy">
+                        <div class="gallery-item-overlay">
+                            <div class="gallery-item-info">
+                                <p class="gallery-item-filename">{{ image.filename }}</p>
+                                <p class="gallery-item-date">{{ image.mtime }}</p>
+                                <p class="gallery-item-seed">Seed: {{ image.seed }}</p>
+                            </div>
+                            <div class="gallery-item-actions">
+                                <button class="btn-icon view-btn" title="View Full Size">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn-icon copy-seed-btn" title="Copy Seed" data-seed="{{ image.seed }}">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <a href="{{ url_for('serve_image', filename=image.path) }}" download="{{ image.filename }}" class="btn-icon" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-images-found">
+                    <i class="fas fa-image no-images-icon"></i>
+                    <p>No images found. Start generating!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .gallery-page {
+        width: 100%;
+    }
+    
+    .search-box {
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-box input {
+        width: 250px;
+        margin-right: 5px;
+    }
+    
+    .gallery-filters {
+        display: flex;
+        justify-content: flex-end;
+        margin: 10px 20px;
+    }
+    
+    .filter-group {
+        display: flex;
+        align-items: center;
+        margin-left: 15px;
+    }
+    
+    .filter-group label {
+        margin-right: 8px;
+        margin-bottom: 0;
+    }
+    
+    .filter-group select {
+        width: auto;
+    }
+    
+    .gallery-stats {
+        margin: 0 20px 10px;
+        color: #8b949e;
+        font-size: 0.9rem;
+    }
+    
+    .gallery-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
+        padding: 20px;
+    }
+    
+    .gallery-item {
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        aspect-ratio: 1;
+        border: 1px solid var(--border-color);
+        transition: transform 0.3s ease;
+    }
+    
+    .gallery-item:hover {
+        transform: scale(1.02);
+    }
+    
+    .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .gallery-item-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .gallery-item:hover .gallery-item-overlay {
+        opacity: 1;
+    }
+    
+    .gallery-item-info {
+        flex: 1;
+    }
+    
+    .gallery-item-filename {
+        font-size: 0.85rem;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .gallery-item-date, .gallery-item-seed {
+        font-size: 0.75rem;
+        color: #8b949e;
+        margin: 5px 0 0;
+    }
+    
+    .gallery-item-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-color);
+        padding: 5px 8px;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+    
+    .btn-icon:hover {
+        background-color: var(--hover-color);
+        color: var(--primary-color);
+    }
+    
+    .no-images-found {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 50px 0;
+        color: #8b949e;
+    }
+    
+    .no-images-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+</style>
+
+{% block additional_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sort by change handler
+        const sortBySelect = document.getElementById('sort-by');
+        if (sortBySelect) {
+            sortBySelect.addEventListener('change', function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('sort', this.value);
+                window.location.search = urlParams.toString();
+            });
+        }
+        
+        // Image view handler
+        const galleryItems = document.querySelectorAll('.gallery-item');
+        galleryItems.forEach(item => {
+            const viewBtn = item.querySelector('.view-btn');
+            if (viewBtn) {
+                viewBtn.addEventListener('click', function() {
+                    const imgSrc = item.querySelector('img').src;
+                    const filename = item.dataset.filename;
+                    const seed = item.dataset.seed;
+                    
+                    // Open in modal
+                    openImageModal(imgSrc, filename, seed);
+                });
+            }
+            
+            // Copy seed button
+            const copySeedBtn = item.querySelector('.copy-seed-btn');
+            if (copySeedBtn) {
+                copySeedBtn.addEventListener('click', function() {
+                    const seed = this.dataset.seed;
+                    navigator.clipboard.writeText(seed)
+                        .then(() => {
+                            showNotification('Seed copied to clipboard: ' + seed, 'success');
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy seed: ', err);
+                            showNotification('Failed to copy seed', 'error');
+                        });
+                });
+            }
+        });
+        
+        function openImageModal(src, filename, seed) {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+            
+            if (!modal || !modalContent) return;
+            
+            // Set modal content
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h3>${filename}</h3>
+                </div>
+                <div class="modal-body" style="text-align: center; padding: 20px;">
+                    <img src="${src}" alt="${filename}" style="max-width: 100%; max-height: 70vh;">
+                </div>
+                <div class="modal-footer" style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span>Seed: ${seed}</span>
+                        <button class="btn btn-sm copy-seed-modal" data-seed="${seed}">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <div>
+                        <a href="${src}" download="${filename}" class="btn btn-primary">Download</a>
+                    </div>
+                </div>
+            `;
+            
+            // Show modal
+            modal.classList.add('show');
+            
+            // Add event listener for copy seed button in modal
+            const copySeedModalBtn = modal.querySelector('.copy-seed-modal');
+            if (copySeedModalBtn) {
+                copySeedModalBtn.addEventListener('click', function() {
+                    const seed = this.dataset.seed;
+                    navigator.clipboard.writeText(seed)
+                        .then(() => {
+                            showNotification('Seed copied to clipboard: ' + seed, 'success');
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy seed: ', err);
+                            showNotification('Failed to copy seed', 'error');
+                        });
+                });
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

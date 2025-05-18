@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}SDXL WebUI - Image to Video{% endblock %}
+
+{% block header_title %}Image to Video{% endblock %}
+
+{% block content %}
+<div class="video-container">
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Generate Video</h3>
+            </div>
+            <form id="video-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="init-image">Upload Initial Image</label>
+                    <input type="file" id="init-image" name="init_image" accept="image/*">
+                    <div class="image-preview-container">
+                        <img id="init-image-preview" class="img-preview" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="motion-prompt">Motion Prompt</label>
+                    <textarea id="motion-prompt" name="motion_prompt" rows="4" placeholder="Describe the motion for the video..."></textarea>
+                    <small>Example: "A camera moving backwards, zooming out slowly"</small>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="frames">Number of Frames</label>
+                        <input type="number" id="frames" name="frames" min="16" max="64" step="1" value="24">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fps">FPS</label>
+                        <input type="number" id="fps" name="fps" min="8" max="30" step="1" value="15">
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="motion-strength">Motion Strength</label>
+                        <div class="range-with-value">
+                            <input type="range" id="motion-strength" name="motion_strength" min="0.1" max="1" step="0.05" value="0.6">
+                            <span id="motion-strength-value">0.6</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="noise-strength">Noise Strength</label>
+                        <div class="range-with-value">
+                            <input type="range" id="noise-strength" name="noise_strength" min="0" max="0.5" step="0.01" value="0.1">
+                            <span id="noise-strength-value">0.1</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="interpolate-frames" name="interpolate_frames" value="true">
+                        <label for="interpolate-frames">Interpolate Frames (smoother video)</label>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-film"></i> Generate Video
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Results</h3>
+            </div>
+            <div id="video-result" class="video-result">
+                <div class="placeholder-message">
+                    <p>Generated video will appear here</p>
+                </div>
+            </div>
+            
+            <div class="card-header">
+                <h3 class="card-title">Logs</h3>
+            </div>
+            <div id="generation-logs" class="logs-container">
+                <!-- Logs will be displayed here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .video-container {
+        width: 100%;
+    }
+    
+    .range-with-value {
+        display: flex;
+        align-items: center;
+    }
+    
+    .range-with-value input {
+        flex: 1;
+        margin-right: 10px;
+    }
+    
+    .range-with-value span {
+        width: 50px;
+        text-align: right;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+    
+    .checkbox-group input {
+        width: auto;
+        margin-right: 10px;
+    }
+    
+    .checkbox-group label {
+        margin-bottom: 0;
+    }
+    
+    .form-actions {
+        margin-top: 20px;
+        text-align: right;
+    }
+    
+    small {
+        color: #8b949e;
+        font-size: 0.8rem;
+    }
+    
+    .video-result {
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    
+    .placeholder-message {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #8b949e;
+        font-style: italic;
+    }
+    
+    .image-preview-container {
+        margin-top: 10px;
+        text-align: center;
+    }
+    
+    .img-preview {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .video-player {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    
+    .download-video-btn {
+        margin-top: 15px;
+    }
+</style>
+
+{% block additional_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup range inputs to update their displayed values
+        const rangeInputs = document.querySelectorAll('input[type="range"]');
+        
+        rangeInputs.forEach(input => {
+            const valueDisplay = document.getElementById(`${input.id}-value`);
+            
+            if (valueDisplay) {
+                // Initial value
+                valueDisplay.textContent = input.value;
+                
+                // Update on change
+                input.addEventListener('input', function() {
+                    valueDisplay.textContent = this.value;
+                });
+            }
+        });
+        
+        // Setup image preview
+        const imageInput = document.getElementById('init-image');
+        const imagePreview = document.getElementById('init-image-preview');
+        
+        if (imageInput && imagePreview) {
+            imageInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                    };
+                    
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+        
+        // Video generation form
+        const videoForm = document.getElementById('video-form');
+        if (videoForm) {
+            videoForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Check if an image is selected
+                const imageInput = document.getElementById('init-image');
+                if (!imageInput.files || !imageInput.files[0]) {
+                    showNotification('Please select an initial image', 'warning');
+                    return;
+                }
+                
+                const formData = new FormData(this);
+                showLoading('Generating video... This may take a few minutes');
+                
+                fetch('/api/generate_video', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Start polling for job status
+                        pollJobStatus(data.job_id);
+                    } else {
+                        hideLoading();
+                        showNotification('Failed to start video generation: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error generating video:', error);
+                    showNotification('Error generating video', 'error');
+                });
+            });
+        }
+        
+        function pollJobStatus(jobId) {
+            fetch(`/api/job/${jobId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'running') {
+                        // Update progress if available
+                        if (data.progress) {
+                            updateLoadingProgress(data.progress);
+                        }
+                        
+                        // Check again after a short delay
+                        setTimeout(() => pollJobStatus(jobId), 2000);
+                    } else if (data.status === 'completed') {
+                        hideLoading();
+                        
+                        if (data.video_url) {
+                            displayGeneratedVideo(data.video_url, data.video_path);
+                        }
+                        
+                        // Display logs if available
+                        if (data.logs) {
+                            displayLogs(data.logs);
+                        }
+                        
+                        showNotification('Video generated successfully!', 'success');
+                    } else if (data.status === 'failed') {
+                        hideLoading();
+                        showNotification('Video generation failed: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error polling job status:', error);
+                    showNotification('Error checking video generation status', 'error');
+                });
+        }
+        
+        function displayGeneratedVideo(videoUrl, videoPath) {
+            const videoResult = document.getElementById('video-result');
+            if (!videoResult) return;
+            
+            // Clear existing contents
+            videoResult.innerHTML = '';
+            
+            // Create video element
+            const videoElement = document.createElement('video');
+            videoElement.className = 'video-player';
+            videoElement.controls = true;
+            videoElement.autoplay = false;
+            videoElement.loop = true;
+            
+            const sourceElement = document.createElement('source');
+            sourceElement.src = videoUrl;
+            sourceElement.type = 'video/mp4';
+            
+            videoElement.appendChild(sourceElement);
+            videoResult.appendChild(videoElement);
+            
+            // Add download button
+            const downloadBtn = document.createElement('a');
+            downloadBtn.href = videoUrl;
+            downloadBtn.download = videoPath.split('/').pop();
+            downloadBtn.className = 'btn btn-primary download-video-btn';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Video';
+            
+            videoResult.appendChild(downloadBtn);
+        }
+        
+        function displayLogs(logs) {
+            const logsContainer = document.getElementById('generation-logs');
+            if (!logsContainer) return;
+            
+            if (Array.isArray(logs)) {
+                logsContainer.innerHTML = logs.map(log => 
+                    `<div class="log-entry">${log}</div>`
+                ).join('');
+            } else {
+                logsContainer.innerHTML = `<div class="log-entry">${logs}</div>`;
+            }
+            
+            // Scroll to bottom
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

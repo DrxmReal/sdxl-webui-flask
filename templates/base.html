@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SDXL WebUI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('serve_static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block additional_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="logo-container">
+                <h1>SDXL WebUI</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('index') }}" class="{% if request.path == url_for('index') %}active{% endif %}">
+                    <i class="fas fa-home"></i> Dashboard</a>
+                </li>
+                <li><a href="{{ url_for('txt2img') }}" class="{% if request.path == url_for('txt2img') %}active{% endif %}">
+                    <i class="fas fa-pencil-alt"></i> Text to Image</a>
+                </li>
+                <li><a href="{{ url_for('img2img') }}" class="{% if request.path == url_for('img2img') %}active{% endif %}">
+                    <i class="fas fa-image"></i> Image to Image</a>
+                </li>
+                <li><a href="{{ url_for('controlnet') }}" class="{% if request.path == url_for('controlnet') %}active{% endif %}">
+                    <i class="fas fa-sliders-h"></i> ControlNet</a>
+                </li>
+                <li><a href="{{ url_for('video') }}" class="{% if request.path == url_for('video') %}active{% endif %}">
+                    <i class="fas fa-film"></i> Image to Video</a>
+                </li>
+                <li><a href="{{ url_for('gallery') }}" class="{% if request.path == url_for('gallery') %}active{% endif %}">
+                    <i class="fas fa-images"></i> Gallery</a>
+                </li>
+                <li><a href="{{ url_for('settings') }}" class="{% if request.path == url_for('settings') %}active{% endif %}">
+                    <i class="fas fa-cog"></i> Settings</a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <p>v1.0.0 | <a href="https://github.com" target="_blank">GitHub</a></p>
+            </div>
+        </nav>
+
+        <main class="content">
+            <header class="content-header">
+                <h2>{% block header_title %}SDXL WebUI{% endblock %}</h2>
+                <div class="user-actions">
+                    <div class="model-info">
+                        <span id="current-model">Loading model...</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal template -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+    
+    <!-- Loading spinner -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-message">Processing...</div>
+    </div>
+
+    <script src="{{ url_for('serve_static', filename='js/main.js') }}"></script>
+    {% block additional_js %}{% endblock %}
+</body>
+</html> 

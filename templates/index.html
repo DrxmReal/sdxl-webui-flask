@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}SDXL WebUI - Dashboard{% endblock %}
+
+{% block header_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="grid grid-3">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Text to Image</h3>
+            </div>
+            <div class="card-body">
+                <p>Generate images from text prompts using Stable Diffusion XL models.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> High-resolution images</li>
+                    <li><i class="fas fa-check"></i> Multiple model support</li>
+                    <li><i class="fas fa-check"></i> Custom negative prompts</li>
+                </ul>
+                <div class="card-actions">
+                    <a href="{{ url_for('txt2img') }}" class="btn btn-primary">Start Creating</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Image to Image</h3>
+            </div>
+            <div class="card-body">
+                <p>Transform existing images using text prompts and Stable Diffusion XL.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Control strength of transformation</li>
+                    <li><i class="fas fa-check"></i> Maintain image composition</li>
+                    <li><i class="fas fa-check"></i> Style transfer capabilities</li>
+                </ul>
+                <div class="card-actions">
+                    <a href="{{ url_for('img2img') }}" class="btn btn-primary">Transform Images</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">ControlNet</h3>
+            </div>
+            <div class="card-body">
+                <p>Control image generation with edge maps, poses, and more.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Support for Canny edge detection</li>
+                    <li><i class="fas fa-check"></i> OpenPose human pose estimation</li>
+                    <li><i class="fas fa-check"></i> Precise composition control</li>
+                </ul>
+                <div class="card-actions">
+                    <a href="{{ url_for('controlnet') }}" class="btn btn-primary">Use ControlNet</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Recent Images</h3>
+            <a href="{{ url_for('gallery') }}" class="btn btn-sm">View All</a>
+        </div>
+        <div class="recent-images">
+            <div class="gallery-container">
+                {% if recent_images %}
+                    {% for image in recent_images %}
+                        <div class="gallery-item">
+                            <img src="{{ url_for('serve_image', filename=image.path) }}" alt="{{ image.filename }}">
+                            <div class="gallery-item-overlay">
+                                {{ image.filename }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-images">No images generated yet. Start creating!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Image to Video</h3>
+            </div>
+            <div class="card-body">
+                <p>Create videos from still images using SDXL video models.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Frame interpolation</li>
+                    <li><i class="fas fa-check"></i> Motion control</li>
+                    <li><i class="fas fa-check"></i> Customizable FPS and length</li>
+                </ul>
+                <div class="card-actions">
+                    <a href="{{ url_for('video') }}" class="btn btn-primary">Generate Videos</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Settings & Customization</h3>
+            </div>
+            <div class="card-body">
+                <p>Customize model settings, LoRAs, VAEs, and more.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Multiple model selection</li>
+                    <li><i class="fas fa-check"></i> VAE options for better quality</li>
+                    <li><i class="fas fa-check"></i> LoRA support for customization</li>
+                </ul>
+                <div class="card-actions">
+                    <a href="{{ url_for('settings') }}" class="btn btn-primary">Configure Settings</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 15px 0;
+    }
+    
+    .feature-list li {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .feature-list li i {
+        color: var(--success-color);
+        margin-right: 10px;
+    }
+    
+    .card-actions {
+        margin-top: 20px;
+        text-align: right;
+    }
+    
+    .no-images {
+        padding: 20px;
+        text-align: center;
+        color: #8b949e;
+    }
+    
+    .recent-images {
+        padding: 20px 0;
+    }
+</style>
+{% endblock %} 
